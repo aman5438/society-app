@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { Req } from '@nestjs/common';
 
 @ApiTags('Owners')
 @ApiBearerAuth()
@@ -13,6 +14,13 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger'
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OwnersController {
   constructor(private readonly ownersService: OwnersService) {}
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @Post()
+  createOwner(@Body() dto: CreateOwnerDto) {
+    return this.ownersService.create(dto);
+  }
 
   @Post()
   @Roles('admin')
@@ -51,4 +59,13 @@ export class OwnersController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.ownersService.remove(id);
   }
+
+  @Get('my-flats')
+  @Roles('owner')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Get flats for the logged-in owner' })
+  getMyFlats(@Req() req) {
+    console.log('🔐 req.user:', req.user);
+    return this.ownersService.findFlatsByUserId(req.user.sub);
+}
 }

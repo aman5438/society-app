@@ -1,4 +1,3 @@
-// src/auth/auth.service.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -6,11 +5,16 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService, private jwtService: JwtService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
+  /**
+   * Signup a new user (admin or owner)
+   */
   async signup(data: { email: string; password: string; role: 'admin' | 'owner' }) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
-
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
@@ -19,18 +23,42 @@ export class AuthService {
       },
     });
 
-    return { message: 'User created successfully', user: { id: user.id, email: user.email, role: user.role } };
+    return {
+      message: 'User created successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
 
+  /**
+   * Login existing user, validate credentials, and return JWT token
+   */
   async login(data: { email: string; password: string }) {
-    const user = await this.prisma.user.findUnique({ where: { email: data.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
 
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
 
     const passwordMatch = await bcrypt.compare(data.password, user.password);
-    if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
 
-    const token = this.jwtService.sign({ sub: user.id, role: user.role });
-    return { access_token: token };
+    if (!passwordMatch) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    //  Generate JWT token with `sub` as userId, `role` for role guard
+    const token = this.jwtService.sign({
+      sub: user.id,
+      role: user.role,
+    });
+
+    return {
+      access_token: token,
+    };
   }
 }

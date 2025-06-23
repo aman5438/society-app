@@ -10,7 +10,7 @@ import { RolesGuard } from './roles.guard';
 
 @Module({
   imports: [
-    PrismaModule, // ✅ Required for PrismaService to be injected
+    PrismaModule,
     PassportModule,
     JwtModule.register({
       secret: 'secret-key',
